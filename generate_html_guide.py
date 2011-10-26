@@ -1,7 +1,7 @@
 ## OxygenGuide - Offline travel guide
 ##
 ## Generate HTML files for articles from http://wikitravel.org
-## Input: XML file generated with "Web Content Extractor"
+## Input: Wikicode files generated with OxygenPump
 ## Output: HTML for local browsing.
 ##
 ## Author: Nicolas Raoul http://nrw.free.fr
@@ -18,8 +18,9 @@ from xml.sax.handler import ContentHandler
 
 ## Settings
 # Path to the input file:
-#wikicodeFilePath = 'unittests.xml'
-wikicodeFilePath='articles.xml'
+##wikicodeFilePath = 'unittests.xml'
+#wikicodeFilePath='articles.xml'
+wikicodeDirectory = '../oxygenpump/wikicode'
 outputDirectory = 'articles'
 minimization = False
 
@@ -172,75 +173,12 @@ class Article(object):
 
     def neutralize(self, articleName):
         return articleName.replace('/','_')
+# End of Article class
 
-# This handler receives the whole XML data and builds an index of articles names,
-# that will be used to know whether a link would be a red link or not.
-class ArticlesNamesHandler(ContentHandler):
-    def __init__ (self):
-        self.isArticleNameElement=False
-        self.articleName=''
-   
-    def startElement(self, name, attrs):
-        if name=='article_name':     
-            self.isArticleNameElement = True
+for infile in os.listdir(wikicodeDirectory):
+    print "infile: " + infile
+    articleName = infile[:-9]
+    wikicode = open(wikicodeDirectory + "/" + infile).read()
+    article = Article(wikicode, articleName);
+    article.saveHTML();
 
-    def characters (self, characters):
-        if self.isArticleNameElement:
-            self.articleName += characters
-
-    def endElement(self, name):
-        if name=='article_name':
-            articleName = self.articleName[8:] # Remove "Editing " prefix
-            articlesNames.append(articleName)
-            self.articleName = ''
-            self.isArticleNameElement = False
-
-# This handler receives the whole XML data and builds Article objects.
-# The scrape XML file must have this format:
-# Items
-#   Item
-#     article_name Page title displayed by Wikipedia when editing wikicode, for instance "Editing Paris"
-#     wikicode
-class WikitravelScrapeHandler(ContentHandler):
-    def __init__ (self):
-        self.isArticleNameElement = False
-        self.isWikicodeElement = False
-        self.articleName = ''
-        self.wikicode = ''
-   
-    def startElement(self, name, attrs):
-        if name=='article_name':     
-            self.isArticleNameElement = True
-        elif name=='wikicode':
-            self.isWikicodeElement = True
-
-    def characters (self, characters):
-        if self.isArticleNameElement:
-            self.articleName += characters
-        if self.isWikicodeElement:
-            self.wikicode += characters
-
-    def endElement(self, name):
-        if name=='article_name':
-            self.isArticleNameElement = False
-        if name=='wikicode':
-            self.isWikicodeElement = False
-        if name=='Item':
-            articleName = self.articleName[8:]
-            article = Article(self.wikicode, articleName);
-            article.saveHTML();
-            self.articleName = ''
-            self.wikicode = ''
-
-# Main
-print 'Transforming from '+wikicodeFilePath+' ...'
-parser = make_parser()
-
-# Builds the list of articles names (for red link prevention).
-parser.setContentHandler(ArticlesNamesHandler())
-parser.parse(open(wikicodeFilePath))
-
-# Process the wikicode and write guide
-parser.setContentHandler(WikitravelScrapeHandler())
-parser.parse(open(wikicodeFilePath))
-print 'Done.'

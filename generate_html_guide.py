@@ -23,6 +23,7 @@ from xml.sax.handler import ContentHandler
 wikicodeDirectory = '../oxygenpump/wikicode'
 outputDirectory = 'articles'
 minimization = False
+hashnames = False
 
 # List of articles names. Useful to prevent red links.
 articlesNames = []
@@ -42,12 +43,15 @@ class Article(object):
     # That means files will be distributed between 100 directories.
     # Even though overall collision probability is 1/500k, a future enhancement could be to check for collisions.
     def hashName(self, articleName):
-        hashvalue = '%d' % abs(hash(articleName))
-        directory = hashvalue[:2]
-        file = hashvalue[2:]
-        if not os.path.isdir('%s/%s' % (outputDirectory, directory)):
-            os.mkdir('%s/%s' % (outputDirectory, directory))
-        return directory + '/' + file + '.html'
+        if hashnames:
+            hashvalue = '%d' % abs(hash(articleName))
+            directory = hashvalue[:2]
+            file = hashvalue[2:]
+            if not os.path.isdir('%s/%s' % (outputDirectory, directory)):
+                os.mkdir('%s/%s' % (outputDirectory, directory))
+            return directory + '/' + file + '.html'
+        else:
+            return articleName + '.html'
 
     # Parse the wikicode and write this article as an HTML file.
     def saveHTML(self):
@@ -126,11 +130,13 @@ class Article(object):
                     if len(restOfLine)==0: break
                     split = restOfLine.partition(']]')
                     portion = split[0]
+                    print "portion=" + portion
                     restOfLine = split[2]
                     # Process this portion
                     split = portion.partition('[[')
                     text = split[0]
                     wikilink = split[2]
+                    print "wikilink=" + wikilink
                     line = line+text
                     # Parse the inside of the wikilink
                     target = wikilink
@@ -141,11 +147,12 @@ class Article(object):
                         label = split[2]
                     target = self.neutralize(target)
                     # Create link only if the article exists.
-                    if target in articlesNames:
-                        line += '<a href="../%s">%s</a>' % (self.hashName(target), label)
+                    if os.path.isfile(wikicodeDirectory + "/" + target + ".wikicode"):
+                        level = '../' if hashnames else ''
+                        line += '<a href="' + level + '%s">%s</a>' % (self.hashName(target), label)
                     else:
                         # Don't create a link, because it would be a broken link.
-                        line += label
+                        line += '<font color="red">' + label + '</font>'
 
             # External links.
             # TODO
@@ -176,7 +183,6 @@ class Article(object):
 # End of Article class
 
 for infile in os.listdir(wikicodeDirectory):
-    print "infile: " + infile
     articleName = infile[:-9]
     wikicode = open(wikicodeDirectory + "/" + infile).read()
     article = Article(wikicode, articleName);

@@ -15,6 +15,7 @@ import os
 import re
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+from urllib import urlencode
 
 ## Settings
 # Path to the input file:
@@ -23,7 +24,7 @@ from xml.sax.handler import ContentHandler
 wikicodeDirectory = '../oxygenpump/wikicode'
 outputDirectory = 'articles'
 minimization = False
-hashnames = False
+hashnames = True
 
 # List of articles names. Useful to prevent red links.
 articlesNames = []
@@ -31,6 +32,9 @@ articlesNames = []
 # Create the directory where HTML files will be written.
 if not os.path.isdir(outputDirectory):
     os.mkdir(outputDirectory)
+
+def urlencode_string(target):
+    return urlencode({'':target})[1:]
 
 # This class represents a Wikitravel article, parses it and processes its content.
 class Article(object):
@@ -58,7 +62,7 @@ class Article(object):
         articleName = self.neutralize(self.articleName)
         print articleName
         outputFile = open('%s/%s' % (outputDirectory,self.hashName(self.articleName)), 'w')
-        outputFile.write('<html><head><title>%s</title></head><body>' % self.articleName)
+        outputFile.write('<html><head><title>%s</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body>' % self.articleName)
         lastLineWasBlank = True
         restOfWikicode = self.wikicode
         while 1:
@@ -147,9 +151,9 @@ class Article(object):
                         label = split[2]
                     target = self.neutralize(target)
                     # Create link only if the article exists.
-                    if os.path.isfile(wikicodeDirectory + "/" + target + ".wikicode"):
+                    if os.path.isfile(wikicodeDirectory + "/" + urlencode_string(target) + ".wikicode"):
                         level = '../' if hashnames else ''
-                        line += '<a href="' + level + '%s">%s</a>' % (self.hashName(target), label)
+                        line += '<a href="' + level + '%s">%s</a>' % (self.hashName(urlencode_string(target)), label)
                     else:
                         # Don't create a link, because it would be a broken link.
                         line += '<font color="red">' + label + '</font>'
@@ -185,6 +189,6 @@ class Article(object):
 for infile in os.listdir(wikicodeDirectory):
     articleName = infile[:-9]
     wikicode = open(wikicodeDirectory + "/" + infile).read()
-    article = Article(wikicode, articleName);
-    article.saveHTML();
-
+    if not "REDIRECT" in wikicode:
+        article = Article(wikicode, articleName);
+        article.saveHTML();

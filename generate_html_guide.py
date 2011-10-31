@@ -26,9 +26,6 @@ outputDirectory = 'articles'
 minimization = False
 hashnames = True
 
-# List of articles names. Useful to prevent red links.
-articlesNames = []
-
 # Create the directory where HTML files will be written.
 if not os.path.isdir(outputDirectory):
     os.mkdir(outputDirectory)
@@ -59,7 +56,6 @@ class Article(object):
 
     # Parse the wikicode and write this article as an HTML file.
     def saveHTML(self):
-        articleName = self.neutralize(self.articleName)
         print articleName
         outputFile = open('%s/%s' % (outputDirectory,self.hashName(self.articleName)), 'w')
         outputFile.write('<html><head><title>%s</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body>' % self.articleName)
@@ -134,13 +130,11 @@ class Article(object):
                     if len(restOfLine)==0: break
                     split = restOfLine.partition(']]')
                     portion = split[0]
-                    print "portion=" + portion
                     restOfLine = split[2]
                     # Process this portion
                     split = portion.partition('[[')
                     text = split[0]
                     wikilink = split[2]
-                    print "wikilink=" + wikilink
                     line = line+text
                     # Parse the inside of the wikilink
                     target = wikilink
@@ -149,11 +143,16 @@ class Article(object):
                         split = wikilink.partition("|")
                         target = split[0]
                         label = split[2]
-                    target = self.neutralize(target)
                     # Create link only if the article exists.
-                    if os.path.isfile(wikicodeDirectory + "/" + urlencode_string(target) + ".wikicode"):
+                    target = urlencode_string(target)
+                    path = wikicodeDirectory + "/" + target + ".wikicode"
+                    
+                    if os.path.isfile(path):
+                        #if "#REDIRECT" in os.path.isfile(path).read:
+                        #while():
+                        
                         level = '../' if hashnames else ''
-                        line += '<a href="' + level + '%s">%s</a>' % (self.hashName(urlencode_string(target)), label)
+                        line += '<a href="' + level + '%s">%s</a>' % (self.hashName(target), label)
                     else:
                         # Don't create a link, because it would be a broken link.
                         line += '<font color="red">' + label + '</font>'
@@ -181,9 +180,6 @@ class Article(object):
             if not minimization:
                 outputFile.write('\n')
         outputFile.write('</body></html>')
-
-    def neutralize(self, articleName):
-        return articleName.replace('/','_')
 # End of Article class
 
 for infile in os.listdir(wikicodeDirectory):

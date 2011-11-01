@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ## OxygenGuide - Offline travel guide
 ##
 ## Generate HTML files for articles from http://wikitravel.org
@@ -144,6 +145,7 @@ class Article(object):
                         target = split[0]
                         label = split[2]
                     # Create link only if the article exists.
+                    target = target.replace(" ", "_")
                     target = urlencode_string(target)
                     path = wikicodeDirectory + "/" + target + ".wikicode"
                     

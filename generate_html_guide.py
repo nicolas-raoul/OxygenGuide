@@ -34,6 +34,20 @@ if not os.path.isdir(outputDirectory):
 def urlencode_string(target):
     return urlencode({'':target})[1:]
 
+def traverse_redirects(target):
+    #print 'traverse_redirects ' + target
+    path = wikicodeDirectory + "/" + target + ".wikicode"
+    if not os.path.isfile(path):
+        return target
+    line = open(path).read()
+    if "#REDIRECT" in line:
+        target = line.partition('[[')[2].partition(']]')[0]
+        #print "is a redirect to " + target
+        return traverse_redirects(target)
+    else:
+        return target
+        #print "is not a redirect"
+
 # This class represents a Wikitravel article, parses it and processes its content.
 class Article(object):
     def __init__ (self, wikicode, articleName):
@@ -133,6 +147,7 @@ class Article(object):
                     portion = split[0]
                     restOfLine = split[2]
                     # Process this portion
+                    #print "parsing, portion:"+portion
                     split = portion.partition('[[')
                     text = split[0]
                     wikilink = split[2]
@@ -147,6 +162,8 @@ class Article(object):
                     # Create link only if the article exists.
                     target = target.replace(" ", "_")
                     target = urlencode_string(target)
+                    #print "parsing, target:"+target
+                    target = traverse_redirects(target)
                     path = wikicodeDirectory + "/" + target + ".wikicode"
                     
                     if os.path.isfile(path):

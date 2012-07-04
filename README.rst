@@ -8,7 +8,7 @@ It is an offline world travel guide. Wikitravel is a great website to gather inf
 Description
 ============
 
-Currently OxygenGuide make use of the dumps downloaded from the `Wikitravel`_ website. 
+Currently OxygenGuide make use of the OxygenPump dumps downloaded from the `Wikitravel`_ website. 
 
 .. _`Wikitravel`: http://www.wikitravel.org/
 

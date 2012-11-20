@@ -22,7 +22,7 @@ from urllib import urlencode
 # Path to the input file:
 ##wikicodeFilePath = 'unittests.xml'
 #wikicodeFilePath='articles.xml'
-wikicodeDirectory = '../oxygenpump/wikicode'
+databaseDump = '/home/nico/Downloads/enwikivoyage-20121118-pages-articles/enwikivoyage-20121118-pages-articles.xml'
 outputDirectory = 'articles'
 minimization = False
 hashnames = True
@@ -35,18 +35,20 @@ def urlencode_string(target):
     return urlencode({'':target})[1:]
 
 def traverse_redirects(target):
+    # Value in the dictionary if there is one, otherwise the target itself
+    return redirects.get(target, target)
     #print 'traverse_redirects ' + target
-    path = wikicodeDirectory + "/" + target + ".wikicode"
-    if not os.path.isfile(path):
-        return target
-    line = open(path).read()
-    if "#REDIRECT" in line:
-        target = line.partition('[[')[2].partition(']]')[0]
-        #print "is a redirect to " + target
-        return traverse_redirects(target)
-    else:
-        return target
-        #print "is not a redirect"
+#    path = wikicodeDirectory + "/" + target + ".wikicode"
+#    if not os.path.isfile(path):
+#        return target
+#    line = open(path).read()
+#    if "#REDIRECT" in line:
+#        target = line.partition('[[')[2].partition(']]')[0]
+#        #print "is a redirect to " + target
+#        return traverse_redirects(target)
+#    else:
+#        return target
+#        #print "is not a redirect"
 
 # This class represents a Wikitravel article, parses it and processes its content.
 class Article(object):
@@ -164,17 +166,17 @@ class Article(object):
                     target = urlencode_string(target)
                     #print "parsing, target:"+target
                     target = traverse_redirects(target)
-                    path = wikicodeDirectory + "/" + target + ".wikicode"
-                    
-                    if os.path.isfile(path):
+#                    path = wikicodeDirectory + "/" + target + ".wikicode"
+#                    
+#                    if os.path.isfile(path):
                         #if "#REDIRECT" in os.path.isfile(path).read:
                         #while():
                         
-                        level = '../' if hashnames else ''
-                        line += '<a href="' + level + '%s">%s</a>' % (self.hashName(target), label)
-                    else:
-                        # Don't create a link, because it would be a broken link.
-                        line += '<font color="red">' + label + '</font>'
+                    level = '../' if hashnames else ''
+                    line += '<a href="' + level + '%s">%s</a>' % (self.hashName(target), label)
+#                    else:
+#                        # Don't create a link, because it would be a broken link.
+#                        line += '<font color="red">' + label + '</font>'
 
             # External links.
             # TODO
@@ -201,9 +203,37 @@ class Article(object):
         outputFile.write('</body></html>')
 # End of Article class
 
-for infile in os.listdir(wikicodeDirectory):
-    articleName = infile[:-9]
-    wikicode = open(wikicodeDirectory + "/" + infile).read()
-    if not "REDIRECT" in wikicode:
-        article = Article(wikicode, articleName);
-        article.saveHTML();
+# Main
+
+# First pass: Build map of redirects
+redirects = {}
+for line in open(databaseDump):
+    if line.startswith('      <text xml:space="preserve">#REDIRECT'):
+        # Get the wikilink of the REDIRECT
+        target = line.partition('[[')[2].partition(']]')[0].partition('#')[0]
+        # Substitute underscores with spaces
+        target = re.compile('_').sub(' ', target)
+        #print "Redirect from " + articleName + " to " + target
+        # Add to dictionary
+        redirects[articleName] = target
+    if line.startswith("    <title>"):
+        articleName = line.partition('>')[2].partition('<')[0]
+
+# Second pass: Generate articles
+flag=0;c=0
+for line in open(databaseDump):
+    if line.startswith("    <title>"):
+        articleName = re.compile('    <title>').sub('', line)
+        articleName = re.compile('</title>.*', re.DOTALL).sub('', articleName)
+    if line.startswith("  </page>"):
+        flag=0
+        if not "REDIRECT" in page:
+            wikicode = re.compile('.*preserve">', re.DOTALL).sub('', page)
+            wikicode = re.compile('      <sha1>.*', re.DOTALL).sub('', wikicode)
+            article = Article(wikicode, articleName);
+            article.saveHTML();
+    if line.startswith("  <page>"):
+        flag=1;c=c+1
+        page=""
+    if flag and not line.startswith("  <page>"):
+        page += line

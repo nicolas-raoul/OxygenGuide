@@ -11,9 +11,9 @@ echo "<html>
 <body>
 <ul>" > ${output}
 
-for i in  Africa Antarctica Asia "South_Asia" "Southeast_Asia" Caribbean \
-"Central_America" "Europe" "Middle_East" "North_America" "South_America" \
-"Other_destinations" "Travel_topics" List_of_phrasebooks
+for i in  Africa Antarctica Asia "South Asia" "Southeast Asia" Caribbean \
+"Central America" "Europe" "Middle East" "North America" "South America" \
+"Other destinations" "Travel topics" List_of_phrasebooks
 do
 echo -n "Looking for $i .. "
 c="<title>${i}</title>"

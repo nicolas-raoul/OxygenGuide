@@ -222,20 +222,27 @@ for line in open(databaseDump):
         articleName = line.partition('>')[2].partition('<')[0]
 
 # Second pass: Generate articles
-flag=0;c=0
+flag=0;skip=0
 for line in open(databaseDump):
     if line.startswith("    <title>"):
-        articleName = re.compile('    <title>').sub('', line)
-        articleName = re.compile('</title>.*', re.DOTALL).sub('', articleName)
+        if ":" in line: # Skip articles such as Template: Title: Wikivoyage:
+            skip=1
+        else:
+            articleName = re.compile('    <title>').sub('', line)
+            articleName = re.compile('</title>.*', re.DOTALL).sub('', articleName)
     if line.startswith("  </page>"):
         flag=0
-        if not "REDIRECT" in page:
-            wikicode = re.compile('.*preserve">', re.DOTALL).sub('', page)
-            wikicode = re.compile('      <sha1>.*', re.DOTALL).sub('', wikicode)
-            article = Article(wikicode, articleName);
-            article.saveHTML();
+        if skip:
+            skip=0
+        else:
+            if not "REDIRECT" in page:
+                wikicode = re.compile('.*preserve">', re.DOTALL).sub('', page)
+                wikicode = re.compile('      <sha1>.*', re.DOTALL).sub('', wikicode)
+                article = Article(wikicode, articleName);
+                article.saveHTML();
     if line.startswith("  <page>"):
-        flag=1;c=c+1
+        flag=1
         page=""
     if flag and not line.startswith("  <page>"):
         page += line
+

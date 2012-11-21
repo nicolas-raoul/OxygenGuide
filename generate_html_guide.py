@@ -20,8 +20,7 @@ from urllib import urlencode
 
 ## Settings
 # Path to the input file:
-##wikicodeFilePath = 'unittests.xml'
-#wikicodeFilePath='articles.xml'
+#databaseDump = '/home/nico/Downloads/enwikivoyage-20121118-pages-articles/head1000.xml'
 databaseDump = '/home/nico/Downloads/enwikivoyage-20121118-pages-articles/enwikivoyage-20121118-pages-articles.xml'
 outputDirectory = 'articles'
 minimization = False
@@ -97,11 +96,11 @@ class Article(object):
             if re.compile('^\s*region.*\|\s*$').match(line):
                 continue
 
-            # Template (ignored).
+            # Template (just print lines content).
             if re.compile('^\{\{').match(line):
                 continue
             if re.compile('^\|').match(line):
-                continue
+                line=re.compile('^\|[^=]*=').sub('',line)
             if re.compile('^\}\}').match(line):
                 continue
 
@@ -192,8 +191,11 @@ class Article(object):
                 line = re.compile('</.*>').sub('', line)
                 line = re.compile('&lt;/.*&gt;').sub('', line)
 
-            # Bold.
-            # TODO Does not work: line=re.compile("'''(.*)'''").sub('<b>{\1}</b>', line)
+            # Bold: remove.
+            line=re.compile("'''").sub("", line)
+
+            # Italic: remove.
+            line=re.compile("''").sub("", line)
 
             if minimization:
                 line = re.compile('\s+').sub(' ', line)

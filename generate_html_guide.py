@@ -1,19 +1,19 @@
 #!/usr/bin/env python
+# coding=utf-8
+#
 ## OxygenGuide - Offline travel guide
+## http://code.google.com/p/oxygenguide
 ##
-## Generate HTML files for articles from http://wikitravel.org
-## Input: Wikicode files generated with OxygenPump
+## Generate HTML files for articles from http://en.wikivoyage.org
+## Input: Wikivoyage dump from http://dumps.wikimedia.org/enwikivoyage/
 ## Output: HTML for local browsing.
 ##
 ## Author: Nicolas Raoul http://nrw.free.fr
-##
-## TODO
-## Remove directory articles beforehand
-## Build page of all articles, preferably regions-structured.
 
 # Import useful libraries.
 import os
 import re
+import sys
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 from urllib import urlencode
@@ -24,30 +24,15 @@ from urllib import urlencode
 databaseDump = '/home/nico/Downloads/enwikivoyage-20121118-pages-articles/enwikivoyage-20121118-pages-articles.xml'
 outputDirectory = 'articles'
 minimization = False
-hashnames = True
-
-# Create the directory where HTML files will be written.
-if not os.path.isdir(outputDirectory):
-    os.mkdir(outputDirectory)
 
 def urlencode_string(target):
     return urlencode({'':target})[1:]
 
-def traverse_redirects(target):
-    # Value in the dictionary if there is one, otherwise the target itself
-    return redirects.get(target, target)
-    #print 'traverse_redirects ' + target
-#    path = wikicodeDirectory + "/" + target + ".wikicode"
-#    if not os.path.isfile(path):
-#        return target
-#    line = open(path).read()
-#    if "#REDIRECT" in line:
-#        target = line.partition('[[')[2].partition(']]')[0]
-#        #print "is a redirect to " + target
-#        return traverse_redirects(target)
-#    else:
-#        return target
-#        #print "is not a redirect"
+re_redirect = re.compile('#REDIRECT', re.I) # Regular expression to detect REDIRECT
+def is_redirect(wikicode):
+    #print wikicode
+    #print bool(re_redirect.match(wikicode))
+    return re_redirect.match(wikicode)
 
 # This class represents a Wikitravel article, parses it and processes its content.
 class Article(object):
@@ -60,21 +45,37 @@ class Article(object):
     # That means files will be distributed between 100 directories.
     # Even though overall collision probability is 1/500k, a future enhancement could be to check for collisions.
     def hashName(self, articleName):
-        if hashnames:
-            hashvalue = '%d' % abs(hash(articleName))
-            directory = hashvalue[:2]
-            file = hashvalue[2:]
-            if not os.path.isdir('%s/%s' % (outputDirectory, directory)):
-                os.mkdir('%s/%s' % (outputDirectory, directory))
-            return directory + '/' + file + '.html'
-        else:
-            return articleName + '.html'
+        hashvalue = '%d' % abs(hash(articleName))
+        directory = hashvalue[:2]
+        file = hashvalue[2:]
+        if not os.path.isdir('%s/%s' % (outputDirectory, directory)):
+            os.mkdir('%s/%s' % (outputDirectory, directory))
+        return directory + '/' + file + '.html'
 
     # Parse the wikicode and write this article as an HTML file.
     def saveHTML(self):
         print articleName
         outputFile = open('%s/%s' % (outputDirectory,self.hashName(self.articleName)), 'w')
         outputFile.write('<html><head><title>%s</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body>' % self.articleName)
+
+        # Breadcrumb
+        cursor = articleName
+        breadcrumb = []
+        while(cursor in isPartOfs):
+            isPartOf = isPartOfs[cursor]
+            breadcrumb.append(isPartOf)
+            if len(breadcrumb) > 100:
+                print "IsPartOf circular reference detected: " + '←'.join(breadcrumb)
+                break
+            cursor = isPartOf
+        if len(breadcrumb) > 0:
+            outputFile.write('<p><i>')
+            buffer = ""
+            for cursor in breadcrumb:
+                buffer = ' → <a href="../' + self.hashName(cursor) + '"> ' + cursor + '</a>' + buffer
+            outputFile.write(buffer)
+            outputFile.write('</i></p>')
+
         lastLineWasBlank = True
         restOfWikicode = self.wikicode
         while 1:
@@ -105,7 +106,9 @@ class Article(object):
                 continue
 
             # Comment (ignored)
-            line = re.compile('<![^<>]*>').sub('', line)
+            line = re.compile('<![^<>]*>').sub('', line) # does not seem to work
+            if re.compile('^<!--').match(line): # does not seem to work
+                continue
 
             # Blank line.
             if re.compile('^\s*$').match(line):
@@ -158,27 +161,45 @@ class Article(object):
                     label = wikilink
                     if '|' in wikilink:
                         split = wikilink.partition("|")
-                        target = split[0]
-                        label = split[2]
+                        target = split[0].strip()
+                        label = split[2].strip()
                     # Create link only if the article exists.
-                    target = target.replace(" ", "_")
-                    target = urlencode_string(target)
-                    #print "parsing, target:"+target
-                    target = traverse_redirects(target)
-#                    path = wikicodeDirectory + "/" + target + ".wikicode"
-#                    
-#                    if os.path.isfile(path):
-                        #if "#REDIRECT" in os.path.isfile(path).read:
-                        #while():
-                        
-                    level = '../' if hashnames else ''
-                    line += '<a href="' + level + '%s">%s</a>' % (self.hashName(target), label)
-#                    else:
-#                        # Don't create a link, because it would be a broken link.
-#                        line += '<font color="red">' + label + '</font>'
+                    target = redirects.get(target, target) # Redirected target, or if inexistent the target itself
+                    
+                    if label: # Ignore if label is empty
+                        if target in articleNames:
+                            line += '<a href="../' + self.hashName(target) + '">' + label + '</a>'
+                        else:
+                            # Don't create a link, because it would be a broken link.
+                            line += '<font color="red">' + label + '</font>'
 
             # External links.
             # TODO
+            if re.compile('.*\].*').match(line):
+                # Contains at least one wikilink. Let's split the line and process one wikilink at a time.
+                restOfLine = line
+                line = ""
+                while 1:
+                    # Split one portion from the line.
+                    if len(restOfLine)==0: break
+                    split = restOfLine.partition(']')
+                    portion = split[0]
+                    restOfLine = split[2]
+                    # Process this portion
+                    split = portion.partition('[')
+                    text = split[0]
+                    extlink = split[2]
+                    line = line+text
+                    # Parse the inside of the wikilink
+                    target = extlink
+                    label = ""
+                    if " " in extlink:
+                        split = extlink.partition(" ")
+                        target = split[0].strip()
+                        label = split[2].strip()
+                    if extlink:
+                        line += '<a href="' + target + '">[' + label + '↗]</a>'
+
 
             # Listing.
             if re.compile('^<li>\s*(<|&lt;)(see|do|buy|eat|drink|sleep).*(<|&gt;)/.*').match(line):
@@ -207,21 +228,63 @@ class Article(object):
 
 # Main
 
-# First pass: Build map of redirects
+# Create the directory where HTML files will be written.
+if not os.path.isdir(outputDirectory):
+    os.mkdir(outputDirectory)
+
+print "FIRST PASS: Build list of articles and map of redirects"
 redirects = {}
+articleNames = []
+isPartOfs = {}
+redirect = 0
+isPartOf = 0
 for line in open(databaseDump):
-    if line.startswith('      <text xml:space="preserve">#REDIRECT'):
-        # Get the wikilink of the REDIRECT
-        target = line.partition('[[')[2].partition(']]')[0].partition('#')[0]
-        # Substitute underscores with spaces
-        target = re.compile('_').sub(' ', target)
-        #print "Redirect from " + articleName + " to " + target
-        # Add to dictionary
-        redirects[articleName] = target
     if line.startswith("    <title>"):
         articleName = line.partition('>')[2].partition('<')[0]
+    if line.startswith("    <redirect"):
+        redirect = 1
+        target = line.partition('"')[2].partition('"')[0].partition('#')[0]
+    if line.startswith("{{IsPartOf|") or line.startswith("{{isPartOf|"):
+        isPartOf = line[11:].partition('}')[0]
+        isPartOf = isPartOf.replace("_", " ")
+    if line.startswith("{{IsIn|") or line.startswith("{{isIn|"):
+        isPartOf = line[7:].partition('}')[0]
+        isPartOf = isPartOf.replace("_", " ")
+    if line.startswith("  </page>"):
+        if(redirect):
+            #print "New redirect: " + articleName + " to " + target
+            redirects[articleName] = target
+        else:
+            #print "New article: " + articleName
+            articleNames.append(articleName)
+        if(isPartOf != 0):
+            isPartOfs[articleName] = isPartOf
+        redirect = 0
+        isPartOf = 0
 
-# Second pass: Generate articles
+print str(len(redirects)) + " redirects"
+print str(len(articleNames)) + " articles"
+print str(len(isPartOfs)) + " articles with breadcrumb"
+
+#    if is_redirect_line(line):
+#        # Get the wikilink of the REDIRECT
+#        target = line.partition('[[')[2].partition(']]')[0].partition('#')[0]
+#        # Substitute underscores with spaces
+#        target = re.compile('_').sub(' ', target)
+#        #print "Redirect from " + articleName + " to " + target
+#        # Add to dictionary
+#        redirects[articleName] = target
+#    else:
+#        articleNames.append(articleName)
+#    if line.startswith("    <title>"):
+#        articleName = line.partition('>')[2].partition('<')[0]
+
+print "SECOND PASS: Check for double-redirects"
+for (name,target) in redirects.items():
+    if target in redirects:
+        print "Double redirect detected, please fix: " + name + " > " + target + " > " + redirects[target]
+
+print "THIRD PASS: Generate articles"
 flag=0;skip=0
 for line in open(databaseDump):
     if line.startswith("    <title>"):
@@ -235,8 +298,8 @@ for line in open(databaseDump):
         if skip:
             skip=0
         else:
-            if not "REDIRECT" in page:
-                wikicode = re.compile('.*preserve">', re.DOTALL).sub('', page)
+            wikicode = re.compile('.*preserve">', re.DOTALL).sub('', page)
+            if not is_redirect(wikicode):
                 wikicode = re.compile('      <sha1>.*', re.DOTALL).sub('', wikicode)
                 article = Article(wikicode, articleName);
                 article.saveHTML();

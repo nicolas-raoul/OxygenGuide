@@ -11,7 +11,7 @@ echo "<html>
 <body>
 <ul>" > ${output}
 
-for i in  "Africa" "Antarctica" "Asia" "South Asia" "Southeast Asia" "Caribbean" \
+for i in "Africa" "Antarctica" "Asia" "South Asia" "Southeast Asia" "Caribbean" \
 "Central America" "Europe" "Middle East" "North America" "South America" \
 "Other destinations" "Travel topics" "List of phrasebooks"
 do

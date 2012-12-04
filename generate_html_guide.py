@@ -20,10 +20,9 @@ from urllib import urlencode
 
 ## Settings
 # Path to the input file:
-#databaseDump = '/home/nico/Downloads/enwikivoyage-20121118-pages-articles/head1000.xml'
-databaseDump = '/home/nico/Downloads/enwikivoyage-20121118-pages-articles/enwikivoyage-20121118-pages-articles.xml'
+databaseDump = 'enwikivoyage-20121128-pages-articles.xml'
 outputDirectory = 'articles'
-minimization = False
+minimization = True
 
 def urlencode_string(target):
     return urlencode({'':target})[1:]

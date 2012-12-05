@@ -33,28 +33,28 @@ def is_redirect(wikicode):
     #print bool(re_redirect.match(wikicode))
     return re_redirect.match(wikicode)
 
+# Some operating systems don't like 20000 files in the same directory, or filenames with exotic characters.
+# This method builds a file path for this article that looks like '38/16720965.html'
+# That means files will be distributed between 100 directories.
+# Even though overall collision probability is 1/500k, a future enhancement could be to check for collisions.
+def hashName(articleName):
+    hashvalue = '%d' % abs(hash(articleName))
+    directory = hashvalue[:2]
+    file = hashvalue[2:]
+    if not os.path.isdir('%s/%s' % (outputDirectory, directory)):
+        os.mkdir('%s/%s' % (outputDirectory, directory))
+    return directory + '/' + file + '.html'
+
 # This class represents a Wikitravel article, parses it and processes its content.
 class Article(object):
     def __init__ (self, wikicode, articleName):
         self.wikicode = wikicode
         self.articleName = articleName
 
-    # Some operating systems don't like 20000 files in the same directory, or filenames with exotic characters.
-    # This method builds a file path for this article that looks like '38/16720965.html'
-    # That means files will be distributed between 100 directories.
-    # Even though overall collision probability is 1/500k, a future enhancement could be to check for collisions.
-    def hashName(self, articleName):
-        hashvalue = '%d' % abs(hash(articleName))
-        directory = hashvalue[:2]
-        file = hashvalue[2:]
-        if not os.path.isdir('%s/%s' % (outputDirectory, directory)):
-            os.mkdir('%s/%s' % (outputDirectory, directory))
-        return directory + '/' + file + '.html'
-
     # Parse the wikicode and write this article as an HTML file.
     def saveHTML(self):
         print articleName
-        outputFile = open('%s/%s' % (outputDirectory,self.hashName(self.articleName)), 'w')
+        outputFile = open('%s/%s' % (outputDirectory,hashName(self.articleName)), 'w')
         outputFile.write('<html><head><title>%s</title><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body>' % self.articleName)
 
         # Breadcrumb
@@ -71,7 +71,7 @@ class Article(object):
             outputFile.write('<p><i>')
             buffer = ""
             for cursor in breadcrumb:
-                buffer = ' → <a href="../' + self.hashName(cursor) + '"> ' + cursor + '</a>' + buffer
+                buffer = ' → <a href="../' + hashName(cursor) + '"> ' + cursor + '</a>' + buffer
             outputFile.write(buffer)
             outputFile.write('</i></p>')
 
@@ -92,7 +92,7 @@ class Article(object):
             if re.compile('^\s*region.?name=\[\[[^\]]*\]\]\s*\|\s*$').match(line):
                 line = re.compile('^\s*region.?name=\[\[').sub('', line)
                 line = re.compile('\]\]\s*\|\s*$').sub('', line)
-                line = '<li><a href="../%s">%s</a></li>' % (self.hashName(line), line)
+                line = '<li><a href="../%s">%s</a></li>' % (hashName(line), line)
             if re.compile('^\s*region.*\|\s*$').match(line):
                 continue
 
@@ -167,7 +167,7 @@ class Article(object):
                     
                     if label: # Ignore if label is empty
                         if target in articleNames:
-                            line += '<a href="../' + self.hashName(target) + '">' + label + '</a>'
+                            line += '<a href="../' + hashName(target) + '">' + label + '</a>'
                         else:
                             # Don't create a link, because it would be a broken link.
                             line += '<font color="red">' + label + '</font>'
@@ -226,12 +226,29 @@ class Article(object):
 # End of Article class
 
 # Main
+print "### Generate index"
+articles = ["Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
+#articles = ["India", "Delhi", "Jaipur", "Varanasi", "Pakistan", "Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
+index = open("index.html", "w")
+index.write("<html> <head><title>OxygenGuide</title></head> <body> <ul>")
+for article in articles:
+    index.write('<li><a href="articles/')
+    index.write(hashName(article))
+    index.write('">')
+    index.write(article)
+    index.write('</a></li>')
+index.write('</ul>')
+index.write('<p>This content is based on work by all volunteers of <a href="http://wikivoyage.org">Wikivoyage</a> and <a href="http://wikitravel.org">Wikitravel</a>.')
+index.write('Text is available under <a href="http://creativecommons.org/licenses/by-sa/1.0/">Creative Commons Attribution-ShareAlike 1.0</a>.')
+index.write('Comments welcome on <a href="https://en.wikivoyage.org/w/index.php?title=User_talk:Nicolas1981&action=edit&section=new">my user page</a>.</p>')
+index.write('</body> </html>')
+#sys.exit()
 
 # Create the directory where HTML files will be written.
 if not os.path.isdir(outputDirectory):
     os.mkdir(outputDirectory)
 
-print "FIRST PASS: Build list of articles and map of redirects"
+print "### Build list of articles and map of redirects"
 redirects = {}
 articleNames = []
 isPartOfs = {}
@@ -278,12 +295,12 @@ print str(len(isPartOfs)) + " articles with breadcrumb"
 #    if line.startswith("    <title>"):
 #        articleName = line.partition('>')[2].partition('<')[0]
 
-print "SECOND PASS: Check for double-redirects"
+print "### Check for double-redirects"
 for (name,target) in redirects.items():
     if target in redirects:
         print "Double redirect detected, please fix: " + name + " > " + target + " > " + redirects[target]
 
-print "THIRD PASS: Generate articles"
+print "### Generate articles"
 flag=0;skip=0
 for line in open(databaseDump):
     if line.startswith("    <title>"):

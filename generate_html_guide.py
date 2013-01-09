@@ -20,7 +20,7 @@ from urllib import urlencode
 
 ## Settings
 # Path to the input file:
-databaseDump = 'enwikivoyage-20121128-pages-articles.xml'
+databaseDump = 'enwikivoyage-20130101-pages-articles.xml'
 outputDirectory = 'articles'
 minimization = True
 
@@ -228,7 +228,6 @@ class Article(object):
 # Main
 print "### Generate index"
 articles = ["Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
-#articles = ["India", "Delhi", "Jaipur", "Varanasi", "Pakistan", "Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
 index = open("index.html", "w")
 index.write("<html> <head><title>OxygenGuide</title></head> <body> <ul>")
 for article in articles:
@@ -242,7 +241,6 @@ index.write('<p>This content is based on work by all volunteers of <a href="http
 index.write('Text is available under <a href="http://creativecommons.org/licenses/by-sa/1.0/">Creative Commons Attribution-ShareAlike 1.0</a>.')
 index.write('Comments welcome on <a href="https://en.wikivoyage.org/w/index.php?title=User_talk:Nicolas1981&action=edit&section=new">my user page</a>.</p>')
 index.write('</body> </html>')
-#sys.exit()
 
 # Create the directory where HTML files will be written.
 if not os.path.isdir(outputDirectory):

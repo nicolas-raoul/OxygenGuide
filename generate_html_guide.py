@@ -20,7 +20,8 @@ from urllib import urlencode
 
 ## Settings
 # Path to the input file:
-databaseDump = 'enwikivoyage-20130101-pages-articles.xml'
+databaseDump = sys.argv[1] #'enwikivoyage-20130101-pages-articles.xml'
+print 'Using data from ' + databaseDump
 outputDirectory = 'articles'
 minimization = True
 

@@ -7,13 +7,31 @@ LAST_DUMP_LINE=`grep Directory /tmp/dump-dates.txt | grep -v latest | tail -n 1`
 LAST_DUMP_DATE=`echo $LAST_DUMP_LINE | sed -e "s/<\/a>.*//g" -e "s/.*>//g"`
 echo "Last dump date: $LAST_DUMP_DATE"
 
-# TODO check if already downloaded
+# Check if already downloaded
+if [ -f enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml ];
+then
+   read -p "Already present. Re-generate?"
+else
+   read -p "Not present yet. Generate?"
+fi
 
 wget http://dumps.wikimedia.org/enwikivoyage/$LAST_DUMP_DATE/enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml.bz2
 
 bunzip2 enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml.bz2
 
 rm index.html
-rm -rf articles/*
+rm -rf articles
+mkdir articles
 
 ./generate_html_guide.py enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml
+
+PRETTY_DATE=`echo $LAST_DUMP_DATE | sed 's/^\(.\{4\}\)/\1-/' | sed 's/^\(.\{7\}\)/\1-/'`
+mkdir OxygenGuide_$PRETTY_DATE-a
+mv index.html articles OxygenGuide_$PRETTY_DATE-a/
+zip -r OxygenGuide_$PRETTY_DATE-a.zip OxygenGuide_$PRETTY_DATE-a/
+
+echo "Done: OxygenGuide_$PRETTY_DATE-a.zip"
+
+read -p "Upload to Google Code?"
+GOOGLECODE_PASSWORD=`cat ~/src/googlecode-password.txt` # Can be found at https://code.google.com/hosting/settings
+./googlecode_upload.py --summary "OxygenGuide" --project oxygenguide --user nicolas.raoul --password $GOOGLECODE_PASSWORD OxygenGuide_$PRETTY_DATE-a.zip

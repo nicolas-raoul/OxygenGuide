@@ -10,9 +10,10 @@ echo "Last dump date: $LAST_DUMP_DATE"
 # Check if already downloaded
 if [ -f enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml ];
 then
-   read -p "Already present. Re-generate?"
+   echo "Already present. Exiting."
+   exit
 else
-   read -p "Not present yet. Generate?"
+   echo "Not present yet. Generating."
 fi
 
 wget http://dumps.wikimedia.org/enwikivoyage/$LAST_DUMP_DATE/enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml.bz2
@@ -32,6 +33,6 @@ zip -r OxygenGuide_$PRETTY_DATE-a.zip OxygenGuide_$PRETTY_DATE-a/
 
 echo "Done: OxygenGuide_$PRETTY_DATE-a.zip"
 
-read -p "Upload to Google Code?"
+echo "Uploading to Google Code"
 GOOGLECODE_PASSWORD=`cat ~/src/googlecode-password.txt` # Can be found at https://code.google.com/hosting/settings
 ./googlecode_upload.py --summary "OxygenGuide" --project oxygenguide --user nicolas.raoul --password $GOOGLECODE_PASSWORD OxygenGuide_$PRETTY_DATE-a.zip

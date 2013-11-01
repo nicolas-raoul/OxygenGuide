@@ -89,13 +89,17 @@ class Article(object):
             if re.compile('^\[\[[^\]]*:').match(line):
                 continue
 
-            # Region template (only display region wikilink).
-            if re.compile('^\s*region.?name=\[\[[^\]]*\]\]\s*\|\s*$').match(line):
-                line = re.compile('^\s*region.?name=\[\[').sub('', line)
-                line = re.compile('\]\]\s*\|\s*$').sub('', line)
-                line = '<li><a href="../%s">%s</a></li>' % (hashName(line), line)
-            if re.compile('^\s*region.*\|\s*$').match(line):
+            # Region template (only display region wikilink and description).
+            if re.compile('^\s*region[0-9]*color.*\|\s*$').match(line): #Ignore region color
                 continue
+            if re.compile('^\s*region[0-9]*items.*\|\s*$').match(line): #Ignore region items
+                continue
+            if re.compile('^\s*region[0-9]*name=\[\[[^\]]*\]\]\s*\|\s*$').match(line): # Leave only the wikilink, which will be processed afterwards.
+                line = re.compile('^\s*region[0-9]*name=').sub('', line)
+                line = re.compile('\s*\|\s*$').sub('', line)
+            if re.compile('^\s*region[0-9]*description.*\|\s*$').match(line): # Leave only description.
+                line = re.compile('^\s*region[0-9]*description=').sub(' ', line)
+                line = re.compile(' \|').sub('', line)
 
             # Template (just print lines content).
             if re.compile('^\{\{').match(line):
@@ -200,8 +204,7 @@ class Article(object):
                     if extlink:
                         line += '<a href="' + target + '">[' + label + '↗]</a>'
 
-
-            # Listing.
+            # Old-style listing.
             if re.compile('^<li>\s*(<|&lt;)(see|do|buy|eat|drink|sleep).*(<|&gt;)/.*').match(line):
                 # Opening tag containing interesting attributes.
                 line = re.compile('^<li>\s*(<|&lt;)(see|do|buy|eat|drink|sleep)[^\s]* [^\s]*="').sub('<li>',line)
@@ -211,6 +214,15 @@ class Article(object):
                 # Closing tag.
                 line = re.compile('</.*>').sub('', line)
                 line = re.compile('&lt;/.*&gt;').sub('', line)
+
+            # New-style listing.
+            # Coordinates
+            if re.compile('.*lat=[-0-9][^ ]* \\| long=[-0-9].*').match(line):
+                coords = re.search('.*lat=([^ ]*) \\| long=([^ ]*).*', line, re.I | re.U)
+                lat = coords.group(1)
+                lon = coords.group(2)
+                line = line + ' <a href="geo:' + lat + ',' + lon + '">(map)</a>'
+            # TODO: Rest of new listing. Difficult because multi-line
 
             # Bold: remove.
             line=re.compile("'''").sub("", line)
@@ -228,7 +240,7 @@ class Article(object):
 
 # Main
 print "### Generate index"
-articles = ["Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
+articles = ["Thailand", "Bangkok", "Ko Chang", "Ayutthaya", "Malaysia", "Kuala Lumpur", "Singapore", "Laos", "Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
 index = open("index.html", "w")
 index.write("<html> <head><title>OxygenGuide</title></head> <body> <ul>")
 for article in articles:
@@ -303,7 +315,7 @@ print "### Generate articles"
 flag=0;skip=0
 for line in open(databaseDump):
     if line.startswith("    <title>"):
-        if ":" in line: # Skip articles such as Template: Title: Wikivoyage:
+        if "/Gpx" in line or ":" in line: # Skip GPS traces and articles such as Template: Title: Wikivoyage:
             skip=1
         else:
             articleName = re.compile('    <title>').sub('', line)

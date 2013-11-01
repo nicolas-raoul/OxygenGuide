@@ -240,7 +240,7 @@ class Article(object):
 
 # Main
 print "### Generate index"
-articles = ["Thailand", "Bangkok", "Ko Chang", "Ayutthaya", "Malaysia", "Kuala Lumpur", "Singapore", "Laos", "Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
+articles = ["Africa", "Antarctica", "Asia", "South Asia", "Southeast Asia", "Caribbean", "Central America", "Europe", "Middle East", "North America", "South America", "Other destinations", "Travel topics"]
 index = open("index.html", "w")
 index.write("<html> <head><title>OxygenGuide</title></head> <body> <ul>")
 for article in articles:

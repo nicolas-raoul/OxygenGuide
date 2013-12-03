@@ -76,6 +76,9 @@ class Article(object):
             outputFile.write(buffer)
             outputFile.write('</i></p>')
 
+        body = ""
+        menuItems = [] # Contains internal links to History, See, Eat, etc
+
         lastLineWasBlank = True
         restOfWikicode = self.wikicode
         while 1:
@@ -126,17 +129,19 @@ class Article(object):
 
             # Header.
             if re.compile('^\s*=====.*=====\s*$').match(line):
-                line=re.compile('^(\s*=====\s*)').sub('<h5>',line)
-                line=re.compile('(\s*=====\s*)$').sub('</h5>',line)
+                line = re.compile('^(\s*=====\s*)').sub('<h5>',line)
+                line = re.compile('(\s*=====\s*)$').sub('</h5>',line)
             if re.compile('^\s*====.*====\s*$').match(line):
-                line=re.compile('^(\s*====\s*)').sub('<h4>',line)
-                line=re.compile('(\s*====\s*)$').sub('</h4>',line)
+                line = re.compile('^(\s*====\s*)').sub('<h4>',line)
+                line = re.compile('(\s*====\s*)$').sub('</h4>',line)
             if re.compile('^\s*===.*===\s*$').match(line):
-                line=re.compile('^(\s*===\s*)').sub('<h3>',line)
-                line=re.compile('(\s*===\s*)$').sub('</h3>',line)
+                line = re.compile('^(\s*===\s*)').sub('<h3>',line)
+                line = re.compile('(\s*===\s*)$').sub('</h3>',line)
             if re.compile('^\s*==.*==\s*$').match(line):
-                line=re.compile('^(\s*==\s*)').sub('<h2>',line)
-                line=re.compile('(\s*==\s*)$').sub('</h2>',line)
+                line = re.compile('^(\s*==\s*)').sub('',line)
+                line = re.compile('(\s*==\s*)$').sub('',line)
+                menuItems.append(line)
+                line = "<a name=\"" + str(len(menuItems) - 1) + "\"></a><h2>" + line + "</h2>"
 
             # List item.
             if re.compile('^\*').match(line):
@@ -232,9 +237,18 @@ class Article(object):
 
             if minimization:
                 line = re.compile('\s+').sub(' ', line)
-            outputFile.write(line)
+            body += line
             if not minimization:
-                outputFile.write('\n')
+                body += '\n'
+
+        # Menu
+        outputFile.write("<ul>")
+        for index, menuItem in enumerate(menuItems):
+            link = "<li><a href=\"#" + str(index) + "\">" + menuItem + "</a></li>"
+            outputFile.write(link)
+        outputFile.write("</ul>")
+
+        outputFile.write(body)
         outputFile.write('</body></html>')
 # End of Article class
 
@@ -309,7 +323,7 @@ print str(len(isPartOfs)) + " articles with breadcrumb"
 print "### Check for double-redirects"
 for (name,target) in redirects.items():
     if target in redirects:
-        print "Double redirect detected, please fix: " + name + " > " + target + " > " + redirects[target]
+        print "* Double redirect detected, please fix: " + name + " > " + target + " > " + redirects[target]
 
 print "### Generate articles"
 flag=0;skip=0

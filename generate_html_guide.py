@@ -76,6 +76,9 @@ class Article(object):
             outputFile.write(buffer)
             outputFile.write('</i></p>')
 
+        body = ""
+        menuItems = [] # Contains internal links to History, See, Eat, etc
+
         lastLineWasBlank = True
         restOfWikicode = self.wikicode
         while 1:
@@ -89,13 +92,17 @@ class Article(object):
             if re.compile('^\[\[[^\]]*:').match(line):
                 continue
 
-            # Region template (only display region wikilink).
-            if re.compile('^\s*region.?name=\[\[[^\]]*\]\]\s*\|\s*$').match(line):
-                line = re.compile('^\s*region.?name=\[\[').sub('', line)
-                line = re.compile('\]\]\s*\|\s*$').sub('', line)
-                line = '<li><a href="../%s">%s</a></li>' % (hashName(line), line)
-            if re.compile('^\s*region.*\|\s*$').match(line):
+            # Region template (only display region wikilink and description).
+            if re.compile('^\s*region[0-9]*color.*\|\s*$').match(line): #Ignore region color
                 continue
+            if re.compile('^\s*region[0-9]*items.*\|\s*$').match(line): #Ignore region items
+                continue
+            if re.compile('^\s*region[0-9]*name=\[\[[^\]]*\]\]\s*\|\s*$').match(line): # Leave only the wikilink, which will be processed afterwards.
+                line = re.compile('^\s*region[0-9]*name=').sub('', line)
+                line = re.compile('\s*\|\s*$').sub('', line)
+            if re.compile('^\s*region[0-9]*description.*\|\s*$').match(line): # Leave only description.
+                line = re.compile('^\s*region[0-9]*description=').sub(' ', line)
+                line = re.compile(' \|').sub('', line)
 
             # Template (just print lines content).
             if re.compile('^\{\{').match(line):
@@ -122,17 +129,19 @@ class Article(object):
 
             # Header.
             if re.compile('^\s*=====.*=====\s*$').match(line):
-                line=re.compile('^(\s*=====\s*)').sub('<h5>',line)
-                line=re.compile('(\s*=====\s*)$').sub('</h5>',line)
+                line = re.compile('^(\s*=====\s*)').sub('<h5>',line)
+                line = re.compile('(\s*=====\s*)$').sub('</h5>',line)
             if re.compile('^\s*====.*====\s*$').match(line):
-                line=re.compile('^(\s*====\s*)').sub('<h4>',line)
-                line=re.compile('(\s*====\s*)$').sub('</h4>',line)
+                line = re.compile('^(\s*====\s*)').sub('<h4>',line)
+                line = re.compile('(\s*====\s*)$').sub('</h4>',line)
             if re.compile('^\s*===.*===\s*$').match(line):
-                line=re.compile('^(\s*===\s*)').sub('<h3>',line)
-                line=re.compile('(\s*===\s*)$').sub('</h3>',line)
+                line = re.compile('^(\s*===\s*)').sub('<h3>',line)
+                line = re.compile('(\s*===\s*)$').sub('</h3>',line)
             if re.compile('^\s*==.*==\s*$').match(line):
-                line=re.compile('^(\s*==\s*)').sub('<h2>',line)
-                line=re.compile('(\s*==\s*)$').sub('</h2>',line)
+                line = re.compile('^(\s*==\s*)').sub('',line)
+                line = re.compile('(\s*==\s*)$').sub('',line)
+                menuItems.append(line)
+                line = "<a name=\"" + str(len(menuItems) - 1) + "\"></a><h2>" + line + "</h2>"
 
             # List item.
             if re.compile('^\*').match(line):
@@ -200,8 +209,7 @@ class Article(object):
                     if extlink:
                         line += '<a href="' + target + '">[' + label + '↗]</a>'
 
-
-            # Listing.
+            # Old-style listing.
             if re.compile('^<li>\s*(<|&lt;)(see|do|buy|eat|drink|sleep).*(<|&gt;)/.*').match(line):
                 # Opening tag containing interesting attributes.
                 line = re.compile('^<li>\s*(<|&lt;)(see|do|buy|eat|drink|sleep)[^\s]* [^\s]*="').sub('<li>',line)
@@ -212,6 +220,15 @@ class Article(object):
                 line = re.compile('</.*>').sub('', line)
                 line = re.compile('&lt;/.*&gt;').sub('', line)
 
+            # New-style listing.
+            # Coordinates
+            if re.compile('.*lat=[-0-9][^ ]* \\| long=[-0-9].*').match(line):
+                coords = re.search('.*lat=([^ ]*) \\| long=([^ ]*).*', line, re.I | re.U)
+                lat = coords.group(1)
+                lon = coords.group(2)
+                line = line + ' <a href="geo:' + lat + ',' + lon + '">(map)</a>'
+            # TODO: Rest of new listing. Difficult because multi-line
+
             # Bold: remove.
             line=re.compile("'''").sub("", line)
 
@@ -220,9 +237,18 @@ class Article(object):
 
             if minimization:
                 line = re.compile('\s+').sub(' ', line)
-            outputFile.write(line)
+            body += line
             if not minimization:
-                outputFile.write('\n')
+                body += '\n'
+
+        # Menu
+        outputFile.write("<ul>")
+        for index, menuItem in enumerate(menuItems):
+            link = "<li><a href=\"#" + str(index) + "\">" + menuItem + "</a></li>"
+            outputFile.write(link)
+        outputFile.write("</ul>")
+
+        outputFile.write(body)
         outputFile.write('</body></html>')
 # End of Article class
 
@@ -297,13 +323,13 @@ print str(len(isPartOfs)) + " articles with breadcrumb"
 print "### Check for double-redirects"
 for (name,target) in redirects.items():
     if target in redirects:
-        print "Double redirect detected, please fix: " + name + " > " + target + " > " + redirects[target]
+        print "* Double redirect detected, please fix: [[" + name + "]] > [[" + target + "]] > [[" + redirects[target] + "]]"
 
 print "### Generate articles"
 flag=0;skip=0
 for line in open(databaseDump):
     if line.startswith("    <title>"):
-        if ":" in line: # Skip articles such as Template: Title: Wikivoyage:
+        if "/Gpx" in line or ":" in line: # Skip GPS traces and articles such as Template: Title: Wikivoyage:
             skip=1
         else:
             articleName = re.compile('    <title>').sub('', line)

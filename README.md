@@ -6,3 +6,5 @@ Unlike Wikivoyage, you can use OxygenGuide even when offline: in the place, in t
 It also loads pages faster than via the Internet, and can save you a lot of roaming fees.
 
 [Download the guide HERE](http://datahub.io/dataset/oxygenguide)
+
+An alternative can be to use [Kiwix](http://www.kiwix.org/wiki/Wikivoyage)

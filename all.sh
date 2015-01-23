@@ -20,7 +20,7 @@ wget http://dumps.wikimedia.org/enwikivoyage/$LAST_DUMP_DATE/enwikivoyage-$LAST_
 
 bunzip2 enwikivoyage-$LAST_DUMP_DATE-pages-articles.xml.bz2
 
-rm index.html
+rm -f index.html
 rm -rf articles
 mkdir articles
 

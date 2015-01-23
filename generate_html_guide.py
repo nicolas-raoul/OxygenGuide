@@ -323,7 +323,7 @@ print str(len(isPartOfs)) + " articles with breadcrumb"
 print "### Check for double-redirects"
 for (name,target) in redirects.items():
     if target in redirects:
-        print "* Double redirect detected, please fix: [[" + name + "]] > [[" + target + "]] > [[" + redirects[target] + "]]"
+        print "# Double redirect detected, please fix: [[" + name + "]] > [[" + target + "]] > [[" + redirects[target] + "]]"
 
 print "### Generate articles"
 flag=0;skip=0

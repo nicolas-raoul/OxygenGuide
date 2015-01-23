@@ -1,6 +1,4 @@
-============
-OxygenGuide
-============
+# OxygenGuide
 
 OxygenGuide is an offline world travel guide, based on the online travel guide [Wikivoyage](http://en.wikivoyage.org).
 

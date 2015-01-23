@@ -29,10 +29,14 @@ mkdir articles
 PRETTY_DATE=`echo $LAST_DUMP_DATE | sed 's/^\(.\{4\}\)/\1-/' | sed 's/^\(.\{7\}\)/\1-/'`
 mkdir OxygenGuide_$PRETTY_DATE-a
 mv index.html articles OxygenGuide_$PRETTY_DATE-a/
-zip -r OxygenGuide_$PRETTY_DATE-a.zip OxygenGuide_$PRETTY_DATE-a/
+ZIPNAME="OxygenGuide_$PRETTY_DATE-a.zip"
+zip -r $ZIPNAME OxygenGuide_$PRETTY_DATE-a/
 
-echo "Done: OxygenGuide_$PRETTY_DATE-a.zip"
+echo "Done: $ZIPNAME"
 
-echo "Uploading to Google Code"
-GOOGLECODE_PASSWORD=`cat ~/src/googlecode-password.txt` # Can be found at https://code.google.com/hosting/settings
-./googlecode_upload.py --summary "OxygenGuide" --project oxygenguide --user nicolas.raoul --password $GOOGLECODE_PASSWORD OxygenGuide_$PRETTY_DATE-a.zip
+#echo "Uploading to Google Code"
+#GOOGLECODE_PASSWORD=`cat ~/src/googlecode-password.txt` # Can be found at https://code.google.com/hosting/settings
+#./googlecode_upload.py --summary "OxygenGuide" --project oxygenguide --user nicolas.raoul --password $GOOGLECODE_PASSWORD OxygenGuide_$PRETTY_DATE-a.zip
+
+echo "Uploading to Sourceforge"
+rsync -e ssh $ZIPNAME wvuploader,wikivoyage@frs.sourceforge.net:/home/frs/project/w/wi/wikivoyage/OxygenGuide/

@@ -3,8 +3,8 @@
 # Download the latest dump from the Wikivoyage server and transform it to an HTML guide.
 
 wget http://dumps.wikimedia.org/enwikivoyage/ -O /tmp/dump-dates.txt
-LAST_DUMP_LINE=`grep Directory /tmp/dump-dates.txt | grep -v latest | tail -n 1`
-LAST_DUMP_DATE=`echo $LAST_DUMP_LINE | sed -e "s/<\/a>.*//g" -e "s/.*>//g"`
+LAST_DUMP_LINE=`grep href /tmp/dump-dates.txt | grep -v latest | tail -n 1`
+LAST_DUMP_DATE=`echo $LAST_DUMP_LINE | sed -e "s/\/<\/a>.*//g" -e "s/.*>//g"`
 echo "Last dump date: $LAST_DUMP_DATE"
 
 # Check if already downloaded
@@ -38,5 +38,8 @@ echo "Done: $ZIPNAME"
 #GOOGLECODE_PASSWORD=`cat ~/src/googlecode-password.txt` # Can be found at https://code.google.com/hosting/settings
 #./googlecode_upload.py --summary "OxygenGuide" --project oxygenguide --user nicolas.raoul --password $GOOGLECODE_PASSWORD OxygenGuide_$PRETTY_DATE-a.zip
 
-echo "Uploading to Sourceforge"
-rsync -e ssh $ZIPNAME wvuploader,wikivoyage@frs.sourceforge.net:/home/frs/project/w/wi/wikivoyage/OxygenGuide/
+#echo "Uploading to Sourceforge"
+#rsync -e ssh $ZIPNAME wvuploader,wikivoyage@frs.sourceforge.net:/home/frs/project/w/wi/wikivoyage/OxygenGuide/
+
+# Upload to Datahub
+# TODO
